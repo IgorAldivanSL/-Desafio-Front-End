@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Livraria do Bairro — Catálogo</title>
+
+  <link rel="stylesheet" href="./css/atomic/atoms/atoms.css">
+  <link rel="stylesheet" href="./css/atomic/molecules/molecules.css">
+  <link rel="stylesheet" href="./css/atomic/organism/organism.css">
+  <link rel="stylesheet" href="./responsividade.css">
+  <link rel="stylesheet" href="./template.css">
+</head>
+<body>
+  <header class="header container">
+    <h1 class="header__title">Livraria do Bairro</h1>
+    <div style="display:flex;gap:0.5rem;align-items:center">
+      <input id="searchInput" class="input" placeholder="Buscar por título ou autor" style="max-width:220px"/>
+      <select id="sortSelect" class="input">
+        <option value="default">Ordenar</option>
+        <option value="price-asc">Preço ↑</option>
+        <option value="price-desc">Preço ↓</option>
+        <option value="title-asc">Título A→Z</option>
+      </select>
+      <button id="adminBtn" class="btn btn--primary">Admin</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="catalogSection">
+      <div id="bookGrid" class="grid" aria-live="polite"></div>
+      <p id="emptyMsg" style="display:none;color:#6b7280;margin-top:1rem">Nenhum livro no catálogo.</p>
+    </section>
+  </main>
+
+  <!-- Modal Administrativo -->
+  <div id="adminModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal__content">
+      <h2 class="modal__title" id="modalTitle">Adicionar Livro</h2>
+      <form id="bookForm" class="form">
+        <input type="hidden" id="bookId">
+        <label class="form__label">Título
+          <input type="text" id="title" class="input" required>
+        </label>
+        <label class="form__label">Autor
+          <input type="text" id="author" class="input" required>
+        </label>
+        <label class="form__label">Preço (R$)
+          <input type="number" id="price" class="input" min="0" step="0.01" required>
+        </label>
+        <label class="form__label">URL da Capa
+          <input type="text" id="cover" class="input" placeholder="https://..." required>
+        </label>
+        <div class="form__actions">
+          <button type="button" id="cancelBtn" class="btn btn--secondary">Cancelar</button>
+          <button type="submit" class="btn btn--primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <template id="cardTpl">
+    <div class="card" tabindex="0">
+      <img class="card__img" alt="">
+      <h3 class="card__title"></h3>
+      <p class="card__author"></p>
+      <p class="card__price"></p>
+      <div class="card__actions">
+        <button class="btn btn--small btn--outline editBtn">Editar</button>
+        <button class="btn btn--small btn--danger deleteBtn">Excluir</button>
+      </div>
+    </div>
+  </template>
+
+  <script type="module">
+    const DEFAULT_COVER = 'https://via.placeholder.com/300x420?text=Sem+Capa';
+    const storageKey = 'livraria_bairro_books_v1';
+    let books = JSON.parse(localStorage.getItem(storageKey)) || [
+      {id: Date.now(), title: 'Dom Casmurro', author: 'Machado de Assis', price: 29.9, cover: 'https://m.media-amazon.com/images/I/81tZ1H2N1DL._SY466_.jpg'}
+    ];
+
+    // Elements
+    const bookGrid = document.getElementById('bookGrid');
+    const adminBtn = document.getElementById('adminBtn');
+    const adminModal = document.getElementById('adminModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const bookForm = document.getElementById('bookForm');
+    const bookIdInput = document.getElementById('bookId');
+    const titleInput = document.getElementById('title');
+    const authorInput = document.getElementById('author');
+    const priceInput = document.getElementById('price');
+    const coverInput = document.getElementById('cover');
+    const modalTitle = document.getElementById('modalTitle');
+    const emptyMsg = document.getElementById('emptyMsg');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const cardTpl = document.getElementById('cardTpl');
+
+    // Save & render
+    const saveBooks = () => localStorage.setItem(storageKey, JSON.stringify(books));
+    const formatPrice = p => 'R$ ' + Number(p).toFixed(2);
+
+    function validImageUrl(url) {
+      try {
+        const u = new URL(url);
+        return (u.protocol === 'http:' || u.protocol === 'https:');
+      } catch (e) { return false; }
+    }
+
+    function renderBooks(list = books) {
+      bookGrid.innerHTML = '';
+      if (!list.length) {
+        emptyMsg.style.display = 'block';
+        return;
+      } else {
+        emptyMsg.style.display = 'none';
+      }
+      const frag = document.createDocumentFragment();
+      list.forEach(book => {
+        const node = cardTpl.content.cloneNode(true);
+        const card = node.querySelector('.card');
+        const img = node.querySelector('img');
+        const title = node.querySelector('.card__title');
+        const author = node.querySelector('.card__author');
+        const price = node.querySelector('.card__price');
+        const editBtn = node.querySelector('.editBtn');
+        const deleteBtn = node.querySelector('.deleteBtn');
+
+        img.src = book.cover && validImageUrl(book.cover) ? book.cover : DEFAULT_COVER;
+        img.alt = book.title;
+        title.textContent = book.title;
+        author.textContent = book.author;
+        price.textContent = formatPrice(book.price);
+
+        editBtn.addEventListener('click', () => openEdit(book.id));
+        deleteBtn.addEventListener('click', () => removeBook(book.id));
+
+        frag.appendChild(node);
+      });
+      bookGrid.appendChild(frag);
+    }
+
+    // CRUD
+    function openEdit(id) {
+      const book = books.find(b => b.id === id);
+      if (!book) return;
+      modalTitle.textContent = 'Editar Livro';
+      bookIdInput.value = book.id;
+      titleInput.value = book.title;
+      authorInput.value = book.author;
+      priceInput.value = book.price;
+      coverInput.value = book.cover;
+      adminModal.classList.remove('hidden');
+    }
+
+    function removeBook(id) {
+      if (!confirm('Tem certeza que deseja excluir este livro?')) return;
+      books = books.filter(b => b.id !== id);
+      saveBooks();
+      applyFilters();
+    }
+
+    // Admin simple protection (prompt password)
+    adminBtn.addEventListener('click', () => {
+      const pwd = prompt('Senha de administrador (para acessar area admin):');
+      if (pwd === null) return; // cancel
+      if (pwd.trim() === 'livraria123') { // simple password for demo
+        modalTitle.textContent = 'Adicionar Livro';
+        bookForm.reset();
+        bookIdInput.value = '';
+        adminModal.classList.remove('hidden');
+      } else {
+        alert('Senha incorreta.');
+      }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      adminModal.classList.add('hidden');
+    });
+
+    bookForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = bookIdInput.value;
+      const newBook = {
+        id: id ? Number(id) : Date.now(),
+        title: titleInput.value.trim(),
+        author: authorInput.value.trim(),
+        price: parseFloat(priceInput.value) || 0,
+        cover: coverInput.value.trim()
+      };
+      if (!newBook.title || !newBook.author) {
+        alert('Preencha título e autor.');
+        return;
+      }
+      if (id) {
+        books = books.map(b => b.id === newBook.id ? newBook : b);
+      } else {
+        books.push(newBook);
+      }
+      saveBooks();
+      adminModal.classList.add('hidden');
+      applyFilters();
+    });
+
+    // Filters & sorting
+    function applyFilters() {
+      const q = searchInput.value.trim().toLowerCase();
+      let filtered = books.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+      const sort = sortSelect.value;
+      if (sort === 'price-asc') filtered.sort((a,b)=>a.price-b.price);
+      if (sort === 'price-desc') filtered.sort((a,b)=>b.price-a.price);
+      if (sort === 'title-asc') filtered.sort((a,b)=>a.title.localeCompare(b.title));
+      renderBooks(filtered);
+    }
+
+    searchInput.addEventListener('input', () => applyFilters());
+    sortSelect.addEventListener('change', () => applyFilters());
+
+    // Close modal on Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') adminModal.classList.add('hidden');
+    });
+
+    // Initial render
+    applyFilters();
+  </script>
+</body>
+</html>

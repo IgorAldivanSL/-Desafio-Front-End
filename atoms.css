@@ -1,0 +1,74 @@
+/* === ATOMS === */
+:root {
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-bg: #f9fafb;
+  --color-text: #111827;
+  --radius: 0.5rem;
+  --shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  --transition: 0.2s ease-in-out;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* Botões */
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: #e5e7eb;
+  transition: background var(--transition);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: white;
+}
+.btn--primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn--secondary {
+  background: #e5e7eb;
+}
+.btn--secondary:hover {
+  background: #d1d5db;
+}
+
+.btn--danger {
+  background: var(--color-danger);
+  color: white;
+}
+.btn--danger:hover {
+  background: var(--color-danger-hover);
+}
+
+.btn--small {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+.input:focus {
+  outline: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
+}
